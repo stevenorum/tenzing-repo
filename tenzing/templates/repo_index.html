@@ -1,0 +1,9 @@
+{% extends "base.html.jinja" %}
+
+{% block title %}{{ repo_name }} Index{% endblock %}
+
+{% block body %}
+{% for package in packages %}
+<a href="{{ base_url_w_slash }}repo/{{ package[1] }}/">{{ package[0] }}</a><br/>
+{% endfor %}
+{% endblock %}

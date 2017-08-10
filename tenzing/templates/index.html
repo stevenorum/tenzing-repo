@@ -1,0 +1,10 @@
+{% extends "base.html.jinja" %}
+
+{% block title %}{{ repo_name }}{% endblock %}
+
+{% block header %}This is the Tenzing landing page for {{ repo_name }}.{% endblock %}
+
+{% block body %}
+<p>PIP URL: <a href="{{ base_url_w_slash }}repo/">{{ base_url_w_slash }}repo/</a></p>
+<p>API URL: <a href="{{ base_url_w_slash }}api/">{{ base_url_w_slash }}api/</a></p>
+{% endblock %}
