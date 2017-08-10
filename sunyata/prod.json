@@ -7,7 +7,7 @@
     "config_path": "sunyata.json",
     "stage_config": {
         "debug_enabled":true,
-        "auth_enabled":true
+        "auth_enabled":false
     },
     "extra_cloudformation_templates": ["cf_templates/repo_bucket.cf.json"],
     "lambdas": [

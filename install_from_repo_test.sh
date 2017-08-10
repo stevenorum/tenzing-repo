@@ -23,8 +23,9 @@ bundle() {
     echo "extra-index-url = https://${USERNAME}:${PASSWORD}@${API_HOST}/prod/repo/" >> $PIP_CONF
     echo "trusted-host = $API_HOST" >> $PIP_CONF
 
-    pip3 install boto3 -t $TEST_DIR/ -vvv
-    pip3 install sunyata -t $TEST_DIR/ -vvv
+    pip3 install boto3 -t $TEST_DIR/
+    pip3 install sunyata -t $TEST_DIR/
+    pip3 install toco -t $TEST_DIR/
     rm ~/.pydistutils.cfg
     rm $PIP_CONF
     if [ -e "$PIP_CONF_TEMP" ] ; then

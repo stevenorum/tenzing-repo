@@ -18,6 +18,7 @@ import base64
 import boto3
 import os
 import re
+import time
 import traceback
 
 logster.set_level(logster.DEBUG)
@@ -25,6 +26,9 @@ logster.set_level(logster.DEBUG)
 s3 = boto3.client("s3")
 
 REPO_BUCKET = "tenzing-{account_id}-{region}".format(account_id=SUNYATA_CONFIG.aws_account_id, region=SUNYATA_CONFIG.aws_region)
+
+LINK_MAX_AGE = 900 # seconds, so 15 minutes
+LINK_REFRESH_BUFFER = 60 # seconds, so 1 minute
 
 PAGE_CHAIN = DispatchChain(debug_name="PAGE_CHAIN")
 
@@ -46,6 +50,22 @@ def get_debug_string(request):
 
 def debug(request):
     return make_response(format_content(get_debug_string(request)))
+
+PRESIGNED_URL_CACHE = {}
+
+def get_file_link(s3_key):
+    obj = PRESIGNED_URL_CACHE.get(s3_key, {"expires":0})
+    now = int(time.time())
+    if obj["expires"] - now < LINK_REFRESH_BUFFER:
+        PRESIGNED_URL_CACHE[s3_key] = {
+            "expires": now + LINK_MAX_AGE,
+            "url": s3.generate_presigned_url(
+                ClientMethod="get_object",
+                Params={'Bucket':REPO_BUCKET,'Key':s3_key},
+                ExpiresIn=LINK_MAX_AGE
+            )
+        }
+    return PRESIGNED_URL_CACHE[s3_key]["url"]
 
 def list_objects(**kwargs):
     response = s3.list_objects_v2(Bucket=REPO_BUCKET, **kwargs)
@@ -76,7 +96,7 @@ def get_files_in_package(packagename):
     prefix = add_trailing_slash(packagename)
     files = list_files(Prefix=prefix)
     file_keys = [f["Key"] for f in files]
-    file_urls = {f[len(prefix):]:s3.generate_presigned_url(ClientMethod="get_object", Params={'Bucket':REPO_BUCKET,'Key':f}, ExpiresIn=300) for f in file_keys}
+    file_urls = {f[len(prefix):]:get_file_link(f) for f in file_keys}
     return file_urls
 
 def normalize_package_name(packagename):
