@@ -6,6 +6,18 @@
         "CodeKey":{
             "Type":"String",
             "Description":"The S3 key of the new lambda code."
+        },
+        "AuthEnabled":{
+            "Type":"String",
+            "AllowedValues" : ["TRUE","FALSE"],
+            "Description":"Whether or not the repo requires auth.",
+            "Default":"FALSE"
+        },
+        "DebugEnabled":{
+            "Type":"String",
+            "AllowedValues" : ["TRUE","FALSE"],
+            "Description":"Whether or not to enable debug mode.",
+            "Default":"FALSE"
         }
     },
     "Resources": {
@@ -93,14 +105,24 @@
                 "Timeout": 10,
                 "Environment":{
                     "Variables": {
+                        "REPO_BUCKET":{"Ref":"RepoBucket"},
+                        "AUTH_ENABLED":{"Ref":"AuthEnabled"},
+                        "DEBUG_ENABLED":{"Ref":"DebugEnabled"}
                     }
                 },
                 "Events": {
-                    "root": {
+                    "get": {
                         "Type": "Api",
                         "Properties": {
                             "Path": "/{proxy+}",
                             "Method": "get"
+                        }
+                    },
+                    "post": {
+                        "Type": "Api",
+                        "Properties": {
+                            "Path": "/{proxy+}",
+                            "Method": "post"
                         }
                     }
                 }
@@ -124,14 +146,25 @@
                 },
                 "Timeout": 10,
                 "Environment":{
-                    "Variables": {}
+                    "Variables": {
+                        "REPO_BUCKET":{"Ref":"RepoBucket"},
+                        "AUTH_ENABLED":{"Ref":"AuthEnabled"},
+                        "DEBUG_ENABLED":{"Ref":"DebugEnabled"}
+                    }
                 },
                 "Events": {
-                    "root": {
+                    "get": {
                         "Type": "Api",
                         "Properties": {
                             "Path": "/",
                             "Method": "get"
+                        }
+                    },
+                    "post": {
+                        "Type": "Api",
+                        "Properties": {
+                            "Path": "/",
+                            "Method": "post"
                         }
                     }
                 }
@@ -140,8 +173,7 @@
         "RepoBucket" : {
             "Type" : "AWS::S3::Bucket",
             "Properties" : {
-                "AccessControl" : "Private",
-                "BucketName" : { "Fn::Sub" : "tenzing-${AWS::AccountId}-${AWS::Region}" }
+                "AccessControl" : "Private"
             }
         },
         "CodeBucket": {

@@ -1,6 +1,5 @@
-#!/usr/bin/env python3
+ #!/usr/bin/env python3
 
-from junko.config import SUNYATA_CONFIG
 from junko.decorators import *
 
 from junko.exceptions import HttpException, render_http_exceptions
@@ -14,6 +13,8 @@ from junko import logster
 from junko.random_utils import *
 from junko.response_core import make_response
 
+import api, s3_core
+
 import base64
 import boto3
 import os
@@ -25,10 +26,12 @@ logster.set_level(logster.DEBUG)
 
 s3 = boto3.client("s3")
 
-REPO_BUCKET = "tenzing-{account_id}-{region}".format(account_id=SUNYATA_CONFIG.aws_account_id, region=SUNYATA_CONFIG.aws_region)
+REPO_BUCKET = os.environ.get("REPO_BUCKET")
+AUTH_ENABLED = os.environ.get("AUTH_ENABLED") == "TRUE"
+DEBUG_ENABLED = os.environ.get("DEBUG_ENABLED") == "TRUE"
 
-LINK_MAX_AGE = 900 # seconds, so 15 minutes
-LINK_REFRESH_BUFFER = 60 # seconds, so 1 minute
+# LINK_MAX_AGE = 900 # seconds, so 15 minutes
+# LINK_REFRESH_BUFFER = 60 # seconds, so 1 minute
 
 PAGE_CHAIN = DispatchChain(debug_name="PAGE_CHAIN")
 
@@ -51,52 +54,62 @@ def get_debug_string(request):
 def debug(request):
     return make_response(format_content(get_debug_string(request)))
 
-PRESIGNED_URL_CACHE = {}
+# PRESIGNED_URL_CACHE = {}
 
-def get_file_link(s3_key):
-    obj = PRESIGNED_URL_CACHE.get(s3_key, {"expires":0})
-    now = int(time.time())
-    if obj["expires"] - now < LINK_REFRESH_BUFFER:
-        PRESIGNED_URL_CACHE[s3_key] = {
-            "expires": now + LINK_MAX_AGE,
-            "url": s3.generate_presigned_url(
-                ClientMethod="get_object",
-                Params={'Bucket':REPO_BUCKET,'Key':s3_key},
-                ExpiresIn=LINK_MAX_AGE
-            )
-        }
-    return PRESIGNED_URL_CACHE[s3_key]["url"]
+# def get_file_link(s3_key):
+#     obj = PRESIGNED_URL_CACHE.get(s3_key, {"expires":0})
+#     now = int(time.time())
+#     if obj["expires"] - now < LINK_REFRESH_BUFFER:
+#         PRESIGNED_URL_CACHE[s3_key] = {
+#             "expires": now + LINK_MAX_AGE,
+#             "url": s3.generate_presigned_url(
+#                 ClientMethod="get_object",
+#                 Params={'Bucket':REPO_BUCKET,'Key':s3_key},
+#                 ExpiresIn=LINK_MAX_AGE
+#             )
+#         }
+#     return PRESIGNED_URL_CACHE[s3_key]["url"]
 
-def list_objects(**kwargs):
-    response = s3.list_objects_v2(Bucket=REPO_BUCKET, **kwargs)
-    contents = response.get("Contents", [])
-    prefixes = response.get("CommonPrefixes", [])
-    while response.get("IsTruncated", False):
-        response = s3.list_objects_v2(Bucket=REPO_BUCKET, ContinuationToken=response.get("NextContinuationToken", None), **kwargs)
-        contents += response.get("Contents", [])
-        prefixes += response.get("CommonPrefixes", [])
-        pass
-    return contents, [p["Prefix"] for p in prefixes]
+# def list_objects(**kwargs):
+#     response = s3.list_objects_v2(Bucket=REPO_BUCKET, **kwargs)
+#     contents = response.get("Contents", [])
+#     prefixes = response.get("CommonPrefixes", [])
+#     while response.get("IsTruncated", False):
+#         response = s3.list_objects_v2(Bucket=REPO_BUCKET, ContinuationToken=response.get("NextContinuationToken", None), **kwargs)
+#         contents += response.get("Contents", [])
+#         prefixes += response.get("CommonPrefixes", [])
+#         pass
+#     return contents, [p["Prefix"] for p in prefixes]
 
-def list_files(**kwargs):
-    return list_objects(**kwargs)[0]
+# def list_files(**kwargs):
+#     return list_objects(**kwargs)[0]
 
-def list_prefixes(**kwargs):
-    return list_objects(**kwargs)[1]
+# def list_prefixes(**kwargs):
+#     return list_objects(**kwargs)[1]
 
-def handle_api(request):
-    return make_response(body=format_content("Not yet implemented"))
+# def handle_api(request):
+#     return make_response(body=format_content("Not yet implemented"))
+
+# def create_package(request):
+#     pass
+
+# def update_package(request):
+#     pass
+
+# def get_upload_link(request):
+#     pass
 
 def get_packages_in_repo():
-    prefixes = list_prefixes(Delimiter="/")
+    prefixes = s3_core.list_prefixes(Delimiter="/")
     trimmed_prefixes = [p[:-1] for p in prefixes]
     return trimmed_prefixes
 
 def get_files_in_package(packagename):
     prefix = add_trailing_slash(packagename)
-    files = list_files(Prefix=prefix)
+    files = s3_core.list_files(Prefix=prefix)
+    files = [f for f in files if not f.endswith('/tenzing-conf.json')]
     file_keys = [f["Key"] for f in files]
-    file_urls = {f[len(prefix):]:get_file_link(f) for f in file_keys}
+    file_urls = {f[len(prefix):]:s3_core.get_file_link(f) for f in file_keys}
     return file_urls
 
 def normalize_package_name(packagename):
@@ -170,11 +183,11 @@ def check_auth(request):
         pass
     raise HttpException.from_code(401)
 
-if SUNYATA_CONFIG.debug_enabled:
+if DEBUG_ENABLED:
     PAGE_CHAIN.add_link(
         Link(r"^.*debug$", debug, debug_name="Debug page")
     )
-if SUNYATA_CONFIG.auth_enabled:
+if AUTH_ENABLED:
     PAGE_CHAIN.add_link(
         Link(r"^.*$", check_auth, debug_name="Auth page")
     )
@@ -184,8 +197,13 @@ PAGE_CHAIN.add_links(
     TemplateLink(r"^/repo/?$", template_name="repo_index.html", param_loader=repo_index_param_loader, debug_name="repo index"),
     TemplateLink(r"^/repo/[-_.0-9a-zA-Z]+/?$", template_name="package_index.html", param_loader=package_index_param_loader, debug_name="package index"),
     Link(r"^/repo/[-_.0-9a-zA-Z]+/.*$", return_file, debug_name="file page"),
-    Link(r"^/api/.*$", handle_api, debug_name="api page")
+    # Link(r"^/api/package/create.*$", create_package, debug_name="create package"),
+    # Link(r"^/api/package/update.*$", update_package, debug_name="update package"),
+    # Link(r"^/api/package/upload.*$", get_upload_link, debug_name="get update link"),
+    # Link(r"^/api/.*$", handle_api, debug_name="api page"),
 )
+
+PAGE_CHAIN.add_links(*api.get_api_links())
 
 @log_calls
 @render_http_exceptions
@@ -200,7 +218,7 @@ def dispatcher(event, context):
             return response
         raise HttpException.from_code(404)
     except Exception as e:
-        if SUNYATA_CONFIG.debug_enabled:
+        if DEBUG_ENABLED:
             return make_response(body=format_content(traceback.format_exc()))
         else:
             raise e
