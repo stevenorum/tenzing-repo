@@ -107,7 +107,7 @@ def get_packages_in_repo():
 def get_files_in_package(packagename):
     prefix = add_trailing_slash(packagename)
     files = s3_core.list_files(Prefix=prefix)
-    files = [f for f in files if not f.endswith('/tenzing-conf.json')]
+    files = [f for f in files if not f['Key'].endswith('.json')]
     file_keys = [f["Key"] for f in files]
     file_urls = {f[len(prefix):]:s3_core.get_file_link(f) for f in file_keys}
     return file_urls
@@ -148,13 +148,17 @@ def get_package_and_file_from_request(request):
     return packagename, filename
 
 def repo_index_param_loader(request):
-    return {"packages":[(p, normalize_package_name(p)) for p in get_packages_in_repo()], "repo_name":get_repo_name()}
+    repo_root = 'https://{host}{path}'.format(host=request['headers']['Host'], path=request['requestContext']['path'])
+    repo_root = strip_trailing_slash(repo_root)
+    return {"packages":[(p, normalize_package_name(p)) for p in get_packages_in_repo()], "repo_name":get_repo_name(), 'repo_root':repo_root}
 
 def package_index_param_loader(request):
+    package_root = 'https://{host}{path}'.format(host=request['headers']['Host'], path=request['requestContext']['path'])
+    package_root = strip_trailing_slash(package_root)
     packagename = get_package_from_request(request)
     files = get_files_in_package(packagename)
     file_list = [json.blob({"name":k,"url":files[k]}) for k in files]
-    return {"files":file_list, "package_name":packagename}
+    return {"files":file_list, "package_name":packagename, 'package_root':package_root}
 
 def return_file(request):
     packagename, filename = get_package_and_file_from_request(request)
