@@ -30,9 +30,6 @@ REPO_BUCKET = os.environ.get("REPO_BUCKET")
 AUTH_ENABLED = os.environ.get("AUTH_ENABLED") == "TRUE"
 DEBUG_ENABLED = os.environ.get("DEBUG_ENABLED") == "TRUE"
 
-# LINK_MAX_AGE = 900 # seconds, so 15 minutes
-# LINK_REFRESH_BUFFER = 60 # seconds, so 1 minute
-
 PAGE_CHAIN = DispatchChain(debug_name="PAGE_CHAIN")
 
 HANDLER_CHAIN = DispatchChain(
@@ -53,51 +50,6 @@ def get_debug_string(request):
 
 def debug(request):
     return make_response(format_content(get_debug_string(request)))
-
-# PRESIGNED_URL_CACHE = {}
-
-# def get_file_link(s3_key):
-#     obj = PRESIGNED_URL_CACHE.get(s3_key, {"expires":0})
-#     now = int(time.time())
-#     if obj["expires"] - now < LINK_REFRESH_BUFFER:
-#         PRESIGNED_URL_CACHE[s3_key] = {
-#             "expires": now + LINK_MAX_AGE,
-#             "url": s3.generate_presigned_url(
-#                 ClientMethod="get_object",
-#                 Params={'Bucket':REPO_BUCKET,'Key':s3_key},
-#                 ExpiresIn=LINK_MAX_AGE
-#             )
-#         }
-#     return PRESIGNED_URL_CACHE[s3_key]["url"]
-
-# def list_objects(**kwargs):
-#     response = s3.list_objects_v2(Bucket=REPO_BUCKET, **kwargs)
-#     contents = response.get("Contents", [])
-#     prefixes = response.get("CommonPrefixes", [])
-#     while response.get("IsTruncated", False):
-#         response = s3.list_objects_v2(Bucket=REPO_BUCKET, ContinuationToken=response.get("NextContinuationToken", None), **kwargs)
-#         contents += response.get("Contents", [])
-#         prefixes += response.get("CommonPrefixes", [])
-#         pass
-#     return contents, [p["Prefix"] for p in prefixes]
-
-# def list_files(**kwargs):
-#     return list_objects(**kwargs)[0]
-
-# def list_prefixes(**kwargs):
-#     return list_objects(**kwargs)[1]
-
-# def handle_api(request):
-#     return make_response(body=format_content("Not yet implemented"))
-
-# def create_package(request):
-#     pass
-
-# def update_package(request):
-#     pass
-
-# def get_upload_link(request):
-#     pass
 
 def get_packages_in_repo():
     prefixes = s3_core.list_prefixes(Delimiter="/")
