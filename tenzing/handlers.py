@@ -201,10 +201,6 @@ PAGE_CHAIN.add_links(
     TemplateLink(r"^/repo/?$", template_name="repo_index.html", param_loader=repo_index_param_loader, debug_name="repo index"),
     TemplateLink(r"^/repo/[-_.0-9a-zA-Z]+/?$", template_name="package_index.html", param_loader=package_index_param_loader, debug_name="package index"),
     Link(r"^/repo/[-_.0-9a-zA-Z]+/.*$", return_file, debug_name="file page"),
-    # Link(r"^/api/package/create.*$", create_package, debug_name="create package"),
-    # Link(r"^/api/package/update.*$", update_package, debug_name="update package"),
-    # Link(r"^/api/package/upload.*$", get_upload_link, debug_name="get update link"),
-    # Link(r"^/api/.*$", handle_api, debug_name="api page"),
 )
 
 PAGE_CHAIN.add_links(*api.get_api_links())
