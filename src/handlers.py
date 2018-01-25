@@ -104,7 +104,7 @@ def make_response(body, code=200, headers={"Content-Type": "text/html"}, base64=
         "isBase64Encoded": base64
     }
 
-def render_response(template_name, code=200, **kwargs):
+def render_response(template_name, code=200, event=None, **kwargs):
     template = env.get_template(template_name)
     return make_response(template.render(**kwargs))
 
@@ -200,6 +200,10 @@ def handle_api_call(args, event=None):
     raise HttpException.from_code(501)
 
 def handle_request(event, context):
+    if "debug" in json.dumps(event).lower():
+        blob = json.dumps(event, indent=2, sort_keys=True)
+        blob += "\n{}\n{}".format(dir(context), vars(context))
+        return make_response("<pre>{}</pre>".format(blob))
     try:
         path = event["path"].strip("/").split("/")
         if path[0] == "":
