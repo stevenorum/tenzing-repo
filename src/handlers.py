@@ -17,6 +17,7 @@ import s3_core
 
 # import base64
 # import boto3
+from jinja2 import Environment, FileSystemLoader
 import logging
 import os
 import re
@@ -131,7 +132,7 @@ class HttpException(Exception):
     }
 
     def __init__(self, template=None, code=None, params={}):
-        self.template = template if (template and template in env.list_templates() else "http_xxx.html")
+        self.template = template if (template and template in env.list_templates()) else "http_xxx.html"
         self.code = int(code)
         self.params = params
         if "message" not in params:
