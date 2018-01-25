@@ -55,7 +55,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Role: { "Fn::GetAtt" : [ "RepoRole", "Arn" ] }
-      Handler: handler.handle_request
+      Handler: handlers.handle_request
       Runtime: python3.6
       CodeUri: "./build/"
       Timeout: 10
