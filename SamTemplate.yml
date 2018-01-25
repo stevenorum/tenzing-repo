@@ -14,10 +14,10 @@ Resources:
         Statement:
           - Effect: Allow
             Action: cloudwatch:PutMetricData
-            Resource: *
+            Resource: "*"
           - Effect: Allow
             Action: apigateway:GET
-            Resource: arn:aws:apigateway:*::/*
+            Resource: "arn:aws:apigateway:*::/*"
   S3Policy:
     Type: AWS::IAM::ManagedPolicy
     Properties:
@@ -25,7 +25,7 @@ Resources:
         Version: 2012-10-17
         Statement:
           - Effect: Allow
-            Action: s3:*
+            Action: "s3:*"
             Resource:
               - { "Fn::GetAtt" : [ "RepoBucket", "Arn" ] }
               - { "Fn::Join" : [ "/", [ { "Fn::GetAtt" : [ "RepoBucket", "Arn" ] }, "*" ] ] }
