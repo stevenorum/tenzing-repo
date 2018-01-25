@@ -1,0 +1,78 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Simple pip repo running in AWS Lambda.
+Resources:
+  RepoBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: Private
+  ApiGatewayPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action: cloudwatch:PutMetricData
+            Resource: *
+          - Effect: Allow
+            Action: apigateway:GET
+            Resource: arn:aws:apigateway:*::/*
+  S3Policy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action: s3:*
+            Resource:
+              - { "Fn::GetAtt" : [ "RepoBucket", "Arn" ] }
+              - { "Fn::Join" : [ "/", [ { "Fn::GetAtt" : [ "RepoBucket", "Arn" ] }, "*" ] ] }
+  RepoRole:
+    Type: AWS::IAM::Role
+    Properties:
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/job-function/ViewOnlyAccess
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - Ref: ApiGatewayPolicy
+        - Ref: S3Policy
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: - lambda.amazonaws.com
+  RepoFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Role: { "Fn::GetAtt" : [ "RepoRole", "Arn" ] }
+      Handler: handler.handle_request
+      Runtime: python3.6
+      CodeUri: ./build/
+      Timeout: 10
+      Environment:
+        Variables:
+          REPO_BUCKET: {"Ref":"RepoBucket"}
+      Events:
+        ProxylessGet:
+          Type: Api
+          Properties:
+            Path: /
+            Method: GET
+        ProxylessPost:
+          Type: Api
+          Properties:
+            Path: /
+            Method: POST
+        ProxyGet:
+          Type: Api
+          Properties:
+            Path: /{proxy+}
+            Method: GET
+        ProxyPost:
+          Type: Api
+          Properties:
+            Path: /{proxy+}
+            Method: POST
