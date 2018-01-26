@@ -73,7 +73,7 @@ class HttpException(Exception):
     def render(self, event=None):
         if event and "event" not in self.params:
             self.params["event"] = event
-        return render_response(self.template, code=self.code, **self.params)
+        return render_response(self.template, **self.params)
 
 def http500(event=None, exception=None, message=None):
     # Has a helper function to log the event for debugging purposes.
@@ -127,8 +127,10 @@ def handle_api_call(args, event=None):
 def handle_request(event, context):
     print(json.dumps(event, indent=2, sort_keys=True))
     logging.info(json.dumps(event, indent=2, sort_keys=True))
-    event["requestedUrl"] = event["headers"]["Host"].rstrip("/") + "/" + event["requestContext"]["path"].lstrip("/")
-    event["baseUrl"] = event["requestedUrl"].rstrip("/")[:-1*len(event["path"].strip("/"))].rstrip("/")
+    event["requestedUrl"] = "https://" + event["headers"]["Host"].rstrip("/") + "/" + event["requestContext"]["path"].lstrip("/")
+    event["baseUrl"] = event["requestedUrl"].rstrip("/")
+    if len(event["path"].strip("/")) > 0:
+        event["baseUrl"] = event["baseUrl"][:-1*len(event["path"].strip("/"))].rstrip("/")
     if "debug" in json.dumps(event).lower():
         blob = json.dumps(event, indent=2, sort_keys=True)
         blob += "\n{}\n{}".format(dir(context), vars(context))
