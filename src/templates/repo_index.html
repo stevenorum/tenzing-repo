@@ -3,7 +3,7 @@
 {% block title %}{{ repo_name }} Index{% endblock %}
 
 {% block body %}
-{% for package in packages %}
-<a href="{{ repo_root }}/{{ package[1] }}/">{{ package[0] }}</a><br/>
+{% for package in package_list %}
+<a href="{{ repo_url }}/{{ package['url_segment'] }}">{{ package['name'] }}</a><br/>
 {% endfor %}
 {% endblock %}

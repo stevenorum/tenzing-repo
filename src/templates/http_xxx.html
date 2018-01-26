@@ -1,0 +1,5 @@
+{% extends "base.html.jinja" %}
+
+{% block title %}{{ code }} {{ phrase }}{% endblock %}
+{% block header %}{{ code }} {{ phrase }}{% endblock %}
+{% block body %}<p>{{ message if message else "An error occurred." }}</p>{% endblock %}

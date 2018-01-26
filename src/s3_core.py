@@ -7,9 +7,7 @@ import time
 
 REPO_BUCKET = os.environ.get("REPO_BUCKET")
 
-PRESIGNED_URL_CACHE = {}
 LINK_MAX_AGE = 900 # seconds, so 15 minutes
-LINK_REFRESH_BUFFER = 60 # seconds, so 1 minute
 
 s3 = boto3.client('s3')
 
@@ -24,22 +22,12 @@ def write(s3_key, body):
     body = body if isinstance(body, (bytes, bytearray)) else body.encode('utf-8')
     s3.put_object(Bucket=REPO_BUCKET, Key=s3_key, Body=body)
 
-def reads(s3_key):
-    return readb(s3_key).decode('utf-8')
-
-def get_file_link(s3_key):
-    obj = PRESIGNED_URL_CACHE.get(s3_key, {"expires":0})
-    now = int(time.time())
-    if obj["expires"] - now < LINK_REFRESH_BUFFER:
-        PRESIGNED_URL_CACHE[s3_key] = {
-            "expires": now + LINK_MAX_AGE,
-            "url": s3.generate_presigned_url(
-                ClientMethod='get_object',
-                Params={'Bucket':REPO_BUCKET,'Key':s3_key},
-                ExpiresIn=LINK_MAX_AGE
-            )
-        }
-    return PRESIGNED_URL_CACHE[s3_key]["url"]
+def get_download_link(s3_key):
+    return s3.generate_presigned_url(
+        ClientMethod='get_object',
+        Params={'Bucket':REPO_BUCKET,'Key':s3_key},
+        ExpiresIn=LINK_MAX_AGE
+    )
 
 def get_upload_link(s3_key):
     return s3.generate_presigned_url(

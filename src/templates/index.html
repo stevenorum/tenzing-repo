@@ -1,0 +1,10 @@
+{% extends "base.html.jinja" %}
+
+{% block title %}{{ repo_name }}{% endblock %}
+
+{% block header %}This is the landing page for {{ repo_name }}.{% endblock %}
+
+{% block body %}
+<p>PIP URL: <a href="{{ repo_url }}">{{ repo_url }}</a></p>
+<p>API URL: <a href="{{ api_url }}">{{ api_url }}</a></p>
+{% endblock %}

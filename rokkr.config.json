@@ -1,7 +1,0 @@
-{
-    "profile":"rokkr-dev",
-    "region":"us-east-1",
-    "stackname":"tenzing-rokkr-test",
-    "directory":"tenzing",
-    "template":"rokkr.sam.json"
-}
