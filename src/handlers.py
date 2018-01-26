@@ -22,9 +22,14 @@ def make_response(body, code=200, headers={"Content-Type": "text/html"}, base64=
 
 def render_response(template_name, code=200, event=None, **kwargs):
     template = env.get_template(template_name)
-    if "repo_name" not in kwargs:
-        kwargs["repo_name"] = REPO_NAME
-    return make_response(template.render(**kwargs))
+    params = {"repo_name":REPO_NAME}
+    if event:
+        params["requested_url"] = event["requestedUrl"]
+        params["base_url"] = event["baseUrl"]
+        params["repo_url"] = params["base_url"] + "/repo"
+        params["api_url"] = params["base_url"] + "/api"
+    params.update(kwargs)
+    return make_response(template.render(**params))
 
 class HttpException(Exception):
     DEFAULT_MESSAGES = {
@@ -89,7 +94,7 @@ def normalize_package_name(packagename):
     return re.sub(r"[-_./]+", "-", packagename).lower()
 
 def get_packages():
-    dictify = lambda p: {"name":p, "prefix":normalize_package_name(p)}
+    dictify = lambda p: {"name":p, "url_segment":normalize_package_name(p)}
     return [dictify(p) for p in get_packages_in_repo()]
 
 def get_files_in_package(package_name):
@@ -106,7 +111,7 @@ def landing_page(event=None):
     return render_response("index.html")
 
 def load_repo_index(event=None):
-    return render_response("repo_index.html", repo_name=REPO_NAME, package_list=get_packages())
+    return render_response("repo_index.html", package_list=get_packages())
 
 def load_package_index(package_name, event=None):
     return render_response("package_index.html", package_name=package_name, file_list=get_files_in_package(package_name))
@@ -118,6 +123,8 @@ def handle_api_call(args, event=None):
     raise HttpException.from_code(501)
 
 def handle_request(event, context):
+    event["requestedUrl"] = event["headers"]["Host"].rstrip("/") + "/" + event["requestContext"]["path"].lstrip("/")
+    event["baseUrl"] = event["requestedUrl"].rstrip("/")[:-1*len(event["path"].strip("/"))].rstrip("/")
     if "debug" in json.dumps(event).lower():
         blob = json.dumps(event, indent=2, sort_keys=True)
         blob += "\n{}\n{}".format(dir(context), vars(context))
