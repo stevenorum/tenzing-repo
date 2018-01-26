@@ -1,100 +1,16 @@
- #!/usr/bin/env python3
-
-# from junko.decorators import *
-
-# from junko.exceptions import HttpException, render_http_exceptions
-
-# from junko.dispatch import DispatchChain, Link
-# from junko.template_dispatchers import TemplateLink
-
-# from junko.formatting import format_content
-# from junko import kson as json
-# from junko import logster
-# from junko.random_utils import *
-# from junko.response_core import make_response
+#!/usr/bin/env python3
 
 import s3_core
 
-# import base64
-# import boto3
 from jinja2 import Environment, FileSystemLoader
+import json
 import logging
 import os
 import re
-# import time
-# import traceback
 
 env = Environment(loader=FileSystemLoader(os.path.join(os.environ['LAMBDA_TASK_ROOT'], "templates")))
 
-# s3 = boto3.client("s3")
-
-# REPO_BUCKET = os.environ.get("REPO_BUCKET")
-REPO_NAME = os.environ.get("REPO_NAME", "generic tenzing repo")
-
-# def get_packages_in_repo():
-#     prefixes = s3_core.list_prefixes(Delimiter="/")
-#     trimmed_prefixes = [p[:-1] for p in prefixes]
-#     return trimmed_prefixes
-
-# def get_files_in_package(packagename):
-#     prefix = add_trailing_slash(packagename)
-#     files = s3_core.list_files(Prefix=prefix)
-#     files = [f for f in files if not f['Key'].endswith('.json')]
-#     file_keys = [f["Key"] for f in files]
-#     file_urls = {f[len(prefix):]:s3_core.get_download_link(f) for f in file_keys}
-#     return file_urls
-
-# def normalize_package_name(packagename):
-#     return re.sub(r"[-_.]+", "-", packagename).lower()
-
-# def package_exists(packagename):
-#     if not packagename:
-#         return False
-#     return packagename in get_packages_in_repo()
-
-# def file_exists(packagename, filename):
-#     if not filename or not packagename:
-#         return False
-#     return filename in get_files_in_package(packagename)
-
-# def get_package_from_request(request):
-#     path = strip_trailing_slash(strip_leading_slash(request.get("path","")))
-#     parts = path.split("/")
-#     if parts[0] == "repo":
-#         del parts[0]
-#     packagename = parts[0]
-#     if not package_exists(packagename):
-#         raise HttpException.from_code(404)
-#     return packagename
-
-# def get_package_and_file_from_request(request):
-#     path = strip_trailing_slash(strip_leading_slash(request.get("path","")))
-#     parts = path.split("/")
-#     if parts[0] == "repo":
-#         del parts[0]
-#     packagename = parts[0]
-#     filename = parts[1]
-#     if not file_exists(packagename, filename):
-#         # This'll also catch the case where the package doesn't exist, for hopefully obvious reasons.
-#         raise HttpException.from_code(404)
-#     return packagename, filename
-
-# def repo_index_param_loader(request):
-#     repo_root = 'https://{host}{path}'.format(host=request['headers']['Host'], path=request['requestContext']['path'])
-#     repo_root = strip_trailing_slash(repo_root)
-#     return {"packages":[(p, normalize_package_name(p)) for p in get_packages_in_repo()], "repo_name":REPO_NAME, 'repo_root':repo_root}
-
-# def package_index_param_loader(request):
-#     package_root = 'https://{host}{path}'.format(host=request['headers']['Host'], path=request['requestContext']['path'])
-#     package_root = strip_trailing_slash(package_root)
-#     packagename = get_package_from_request(request)
-#     files = get_files_in_package(packagename)
-#     file_list = [json.blob({"name":k,"url":files[k]}) for k in files]
-#     return {"files":file_list, "package_name":packagename, 'package_root':package_root}
-
-
-###### Above here is old, throwaway stuff. ######
-
+REPO_NAME = os.environ.get("REPO_NAME", "GenericTenzingRepo")
 
 def make_response(body, code=200, headers={"Content-Type": "text/html"}, base64=False):
     return {
@@ -106,6 +22,8 @@ def make_response(body, code=200, headers={"Content-Type": "text/html"}, base64=
 
 def render_response(template_name, code=200, event=None, **kwargs):
     template = env.get_template(template_name)
+    if "repo_name" not in kwargs:
+        kwargs["repo_name"] = REPO_NAME
     return make_response(template.render(**kwargs))
 
 class HttpException(Exception):
