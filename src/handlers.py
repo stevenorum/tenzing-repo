@@ -70,7 +70,9 @@ class HttpException(Exception):
     def from_code(cls, code, **kwargs):
         return cls(template="http_{code}.html".format(code=code), code=code, params=kwargs)
 
-    def render(self):
+    def render(self, event=None):
+        if event and "event" not in self.params:
+            self.params["event"] = event
         return render_response(self.template, code=self.code, **self.params)
 
 def http500(event=None, exception=None, message=None):
@@ -108,16 +110,16 @@ def get_files_in_package(package_name):
     return [dictify(f) for f in files]
 
 def landing_page(event=None):
-    return render_response("index.html")
+    return render_response("index.html", event=event)
 
 def load_repo_index(event=None):
-    return render_response("repo_index.html", package_list=get_packages())
+    return render_response("repo_index.html", package_list=get_packages(), event=event)
 
 def load_package_index(package_name, event=None):
-    return render_response("package_index.html", package_name=package_name, file_list=get_files_in_package(package_name))
+    return render_response("package_index.html", package_name=package_name, file_list=get_files_in_package(package_name), event=event)
 
 def api_docs(event=None):
-    return render_response("api_docs.html")
+    return render_response("api_docs.html", event=event)
 
 def handle_api_call(args, event=None):
     raise HttpException.from_code(501)
@@ -145,6 +147,6 @@ def handle_request(event, context):
                 return handle_api_call(path[1:], event=event)
         raise HttpException.from_code(404)
     except HttpException as e:
-        return e.render()
+        return e.render(event=event)
     except Exception as e:
-        return http500(exception=e).render()
+        return http500(event=event, exception=e).render()
