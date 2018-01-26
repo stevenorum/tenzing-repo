@@ -125,6 +125,8 @@ def handle_api_call(args, event=None):
     raise HttpException.from_code(501)
 
 def handle_request(event, context):
+    print(json.dumps(event, indent=2, sort_keys=True))
+    logging.info(json.dumps(event, indent=2, sort_keys=True))
     event["requestedUrl"] = event["headers"]["Host"].rstrip("/") + "/" + event["requestContext"]["path"].lstrip("/")
     event["baseUrl"] = event["requestedUrl"].rstrip("/")[:-1*len(event["path"].strip("/"))].rstrip("/")
     if "debug" in json.dumps(event).lower():
